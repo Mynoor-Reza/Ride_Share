@@ -1,0 +1,196 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  PASSENGER
+  DRIVER
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum VerificationStatus {
+  UNVERIFIED
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum RideStatus {
+  REQUESTED
+  ACCEPTED
+  STARTED
+  COMPLETED
+  CANCELLED
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  REFUNDED
+}
+
+enum BookingType {
+  WHOLE_CAR
+  SEAT
+}
+
+enum PaymentMethod {
+  BKASH
+  NAGAD
+  CASH
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+model User {
+  id                 String             @id @default(uuid())
+  phone              String             @unique
+  password           String
+  name               String?
+  nidNumber          String?
+  nidFrontImage      String?
+  nidBackImage       String?
+  verificationStatus VerificationStatus @default(UNVERIFIED)
+  role               UserRole           @default(PASSENGER)
+  emergencyContacts  Json?
+  isFemale           Boolean            @default(false)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  vehicles    Vehicle[]
+  rides       Ride[]        @relation("DriverRides")
+  bookings    Booking[]
+  ratingsGiven    Rating[]   @relation("RatingsGiven")
+  ratingsReceived Rating[]  @relation("RatingsReceived")
+  sosLogs     EmergencyLog[]
+  notifications Notification[]
+
+  @@index([phone])
+  @@index([verificationStatus])
+}
+
+model Vehicle {
+  id         String   @id @default(uuid())
+  driverId   String
+  model      String
+  number     String
+  color      String?
+  totalSeats Int      @default(4)
+  createdAt  DateTime @default(now())
+
+  driver User @relation(fields: [driverId], references: [id])
+
+  @@index([driverId])
+}
+
+model Ride {
+  id             String     @id @default(uuid())
+  driverId       String
+  pickupLat      Float
+  pickupLng      Float
+  pickupAddress  String
+  dropoffLat     Float
+  dropoffLng     Float
+  dropoffAddress String
+  totalSeats     Int
+  availableSeats Int
+  pricePerSeat   Float?
+  priceFullRide  Float?
+  femaleOnly     Boolean    @default(false)
+  status         RideStatus @default(REQUESTED)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  driver   User      @relation("DriverRides", fields: [driverId], references: [id])
+  bookings Booking[]
+
+  @@index([driverId])
+  @@index([status])
+}
+
+model Booking {
+  id          String        @id @default(uuid())
+  rideId      String
+  passengerId String
+  seatsBooked Int           @default(1)
+  bookingType BookingType   @default(SEAT)
+  status      BookingStatus @default(PENDING)
+  createdAt   DateTime      @default(now())
+
+  ride      Ride      @relation(fields: [rideId], references: [id])
+  passenger User      @relation(fields: [passengerId], references: [id])
+  payment   Payment?
+
+  @@index([rideId])
+  @@index([passengerId])
+}
+
+model Payment {
+  id          String        @id @default(uuid())
+  bookingId   String        @unique
+  amount      Float
+  method      PaymentMethod
+  status      PaymentStatus @default(PENDING)
+  transactionId String?
+  createdAt   DateTime      @default(now())
+
+  booking Booking @relation(fields: [bookingId], references: [id])
+}
+
+model EmergencyLog {
+  id        String   @id @default(uuid())
+  userId    String
+  rideId    String?
+  lat       Float?
+  lng       Float?
+  status    String   @default("ACTIVE")
+  createdAt DateTime @default(now())
+  resolvedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([status])
+}
+
+model Rating {
+  id        String   @id @default(uuid())
+  rideId    String?
+  fromId    String
+  toId      String
+  score     Int
+  comment   String?
+  createdAt DateTime @default(now())
+
+  from User @relation("RatingsGiven", fields: [fromId], references: [id])
+  to   User @relation("RatingsReceived", fields: [toId], references: [id])
+
+  @@index([toId])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  title     String
+  body      String
+  data      Json?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([read])
+}
