@@ -25,6 +25,9 @@ Ride_share/
 │       ├── components/   # Sidebar, StatsCard, DataTable, StatusBadge, Modal
 │       ├── context/      # AuthContext
 │       └── lib/          # API client
+├── mobile/           # React Native Expo app (Android/iOS)
+│   ├── app/          # Expo Router pages (Home, Services, etc.)
+│   └── components/   # Reusable UI components
 ├── Progress.md
 ├── implementation-plan.md
 └── README.md
@@ -45,6 +48,11 @@ npm run dev             # http://localhost:3000
 cd admin
 npm install
 npm run dev             # http://localhost:3001
+
+# Mobile App (React Native/Expo)
+cd mobile
+npm install
+npx expo start          # Scan QR code with Expo Go app
 ```
 
 ## API Endpoints (39 total)
